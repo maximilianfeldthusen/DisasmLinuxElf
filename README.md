@@ -66,3 +66,6 @@ Execution: Run the program with the path to an ELF file as an argument:
     ./elf_disassembler /path/to/your/file.elf
 
 Make sure to adjust the disassembly part according to the library you decide to use for that purpose.
+
+
+![C++](https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white)

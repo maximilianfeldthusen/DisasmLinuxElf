@@ -4,19 +4,35 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h> // for close()
+#include <cstring> // for strerror()
+#include <errno.h> // for errno
 
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <path_to_elf_file>" << std::endl;
+        return 1;
+    }
+
+    const char* elf_path = argv[1];
+
     // Open the ELF file
-    int fd = open("<path_to_elf_file>", O_RDONLY);
+    int fd = open(elf_path, O_RDONLY);
     if (fd == -1) {
-        std::cout << "Failed to open the ELF file." << std::endl;
+        std::cerr << "Failed to open the ELF file: " << strerror(errno) << std::endl;
         return 1;
     }
 
     // Initialize the ELF library
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        std::cerr << "Failed to initialize the ELF library: " << elf_errmsg(-1) << std::endl;
+        close(fd);
+        return 1;
+    }
+
     Elf *elf = elf_begin(fd, ELF_C_READ, NULL);
     if (elf == NULL) {
-        std::cout << "Failed to initialize the ELF library." << std::endl;
+        std::cerr << "Failed to initialize the ELF library: " << elf_errmsg(-1) << std::endl;
         close(fd);
         return 1;
     }
@@ -24,18 +40,18 @@ int main() {
     // Get the ELF header
     Elf64_Ehdr *ehdr = elf64_getehdr(elf);
     if (ehdr == NULL) {
-        std::cout << "Failed to get the ELF header." << std::endl;
+        std::cerr << "Failed to get the ELF header: " << elf_errmsg(-1) << std::endl;
         elf_end(elf);
         close(fd);
         return 1;
     }
 
-    // Get the program header
+    // Iterate through the sections
     Elf_Scn *scn = NULL;
     while ((scn = elf_nextscn(elf, scn)) != NULL) {
         Elf64_Shdr *shdr = elf64_getshdr(scn);
         if (shdr == NULL) {
-            std::cout << "Failed to get the section header." << std::endl;
+            std::cerr << "Failed to get the section header: " << elf_errmsg(-1) << std::endl;
             elf_end(elf);
             close(fd);
             return 1;
@@ -46,25 +62,20 @@ int main() {
             // Get the section data
             Elf_Data *data = elf_getdata(scn, NULL);
             if (data == NULL) {
-                std::cout << "Failed to get the section data." << std::endl;
+                std::cerr << "Failed to get the section data: " << elf_errmsg(-1) << std::endl;
                 elf_end(elf);
                 close(fd);
                 return 1;
             }
 
             // Disassemble the code
-            for (size_t i = 0; i < shdr->sh_size; i += shdr->sh_entsize) {
-                // Disassemble the instruction at the current address
-                std::cout << std::hex << shdr->sh_addr + i << ": ";
-                Dwarf_Debug dbg;
-                Dwarf_Error err;
-                dwarf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, &err);
-                Dwarf_Addr pc = shdr->sh_addr + i;
-                Dwarf_Small *code = data->d_buf + i;
-                Dwarf_Sig8 signature;
-                dwarf_get_address_section_and_offset(dbg, pc, &signature, NULL, NULL, &err);
+            for (size_t i = 0; i < shdr->sh_size; ++i) {
+                // Print the instruction address and byte
+                std::cout << std::hex << (shdr->sh_addr + i) << ": " 
+                          << std::hex << static_cast<int>(static_cast<unsigned char*>(data->d_buf)[i]) 
+                          << std::endl;
+
                 // TODO: Implement instruction disassembly using libdwarf or other libraries
-                std::cout << "TODO: Disassemble instruction" << std::endl;
             }
         }
     }

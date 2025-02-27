@@ -46,5 +46,23 @@ This C++ program is designed to read and process an ELF (Executable and Linkable
     - Finally, the program prints a message indicating that disassembly is finished.
 
 ### Summary
-In essence, this program serves as a foundation for analyzing ELF files, specifically focusing on executable sections. While it prints the raw byte values of instructions, it lacks the actual disassembly logic, which would require further implementation using disassembly libraries or techniques. The program is an excellent starting point for those interested in ELF file manipulation and binary analysis.
+In essence, this program serves as a foundation for analyzing ELF files, specifically focusing on executable sections. While it prints the raw byte values of instructions, it lacks the actual disassembly logic, which would require further implementation using disassembly libraries or technique.
 
+### Notes
+
+Disassembly: The actual disassembly functionality is still marked as TODO. You need a disassembly library or function to convert raw bytes into human-readable assembly instructions.
+
+Error Messages: The code now includes more informative error messages using strerror(errno) for file-related errors.
+
+Use of sh_size: The code iterates over the section size instead of using sh_entsize, which is more appropriate for executable code sections.
+
+Compiling: When compiling, make sure you link against the necessary libraries:
+     
+    g++ -o elf_disassembler elf_disassembler.cpp -lelf -ldwarf
+
+Execution: Run the program with the path to an ELF file as an argument:
+
+     
+    ./elf_disassembler /path/to/your/file.elf
+
+Make sure to adjust the disassembly part according to the library you decide to use for that purpose.
